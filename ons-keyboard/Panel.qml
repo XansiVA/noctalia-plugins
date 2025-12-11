@@ -15,6 +15,7 @@ Item {
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
     panelAnchorBottom: true
+    panelAnchorHorizontalCenter: true
 
     anchors.fill: parent
 
