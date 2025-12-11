@@ -16,7 +16,7 @@ NIconButton {
     property string widgetId: ""
     property string section: ""
     
-    icon: "keyboard"
+    icon: "busy"
     tooltipText: pluginApi?.tr("tooltip.open-keyboard") || "Open Keyboard"
     tooltipDirection: BarService.getTooltipDirection()
     
