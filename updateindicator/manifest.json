@@ -1,0 +1,24 @@
+{
+  "id": "update-indicator",
+  "name": "Update Indicator",
+  "version": "1.0.4",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "XansiVA",
+  "license": "MIT",
+  "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+  "description": "Monitor system updates and manage pacman upgrades from your bar.",
+  "entryPoints": {
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml",
+    "settings": "Settings.qml"
+  },
+  "dependencies": {
+    "plugins": []
+  },
+  "metadata": {
+    "defaultSettings": {
+      "checkInterval": 3600,
+      "preferredTerminal": "alacritty"
+    }
+  }
+}
