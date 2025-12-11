@@ -1,4 +1,3 @@
-//edit 3, wtf button?
 import QtQuick
 import QtQuick.Effects
 import Quickshell
@@ -118,27 +117,20 @@ Rectangle {
         process.running = true;
     }
 
-    Image {
-        id: iconImage
-        source: root.currentIconSource
+    Rectangle {
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: -3
-        anchors.verticalCenterOffset: -1
+        width: parent.width * 0.85
+        height: parent.height * 0.85
+        color: root.updateCount > 0 ? Color.mError : Color.mPrimary
+        radius: width / 2
         
-        width: {
-            switch (root.density) {
-            case "compact":
-                return Math.max(1, root.width * 0.85);
-            default:
-                return Math.max(1, root.width * 0.85);
-            }
+        Text {
+            anchors.centerIn: parent
+            text: root.updateCount > 0 ? "↓" : "✓"
+            font.pointSize: Style.fontSizeL
+            font.bold: true
+            color: root.updateCount > 0 ? Color.mOnError : Color.mOnPrimary
         }
-        height: width
-        
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        mipmap: true
-        visible: true
     }
 
     // Update badge
