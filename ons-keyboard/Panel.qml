@@ -24,13 +24,5 @@ Item {
         height: 900 * Style.uiScaleRatio
         color: Color.transparent
 
-        Rectangle {
-            anchors.fill: parent
-            anchors.margins: Style.marginL
-            color: Color.mSurface
-            radius: Style.radiusL
-            border.color: Color.mOutline
-            border.width: Style.borderS
         }
     }
-}
