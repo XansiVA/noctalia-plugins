@@ -1,11 +1,11 @@
 {
   "id": "ons-keyboard",
   "name": "ONS Keyboard",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "minNoctaliaVersion": "3.6.0",
   "author": "XansiVA",
   "license": "MIT",
-  "repository": "https://github.com/noctalia-dev/noctalia-plugins",
+  "repository": "https://github.com/XansiVA/noctalia-plugins",
   "description": "On screen keyboard :3",
   "entryPoints": {
     "barWidget": "BarWidget.qml",
@@ -17,8 +17,8 @@
   },
   "metadata": {
     "defaultSettings": {
-      "checkInterval": 3600,
-      "preferredTerminal": "alacritty"
+      "minimumThreshold": 10,
+      "animationSpeed": 100
     }
   }
 }
