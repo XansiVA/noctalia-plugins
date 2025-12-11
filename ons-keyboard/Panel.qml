@@ -11,7 +11,7 @@ Item {
     // SmartPanel properties - full width bottom panel
     readonly property var geometryPlaceholder: panelContainer
     readonly property bool allowAttach: false
-    property real contentPreferredWidth: 10  // 0 = full width
+    property real contentPreferredWidth: 400 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
 
     anchors.fill: parent
