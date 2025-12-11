@@ -3,58 +3,84 @@ import QtQuick.Layouts
 import qs.Widgets
 import qs.Commons
 
-
-//I hate QML so much I had to dig in docs for this shi.
 ColumnLayout {
     id: root
     
     property var pluginApi: null
     
-    property int valueCheckInterval: pluginApi?.pluginSettings?.checkInterval || pluginApi?.manifest?.metadata?.defaultSettings?.checkInterval || 3600
-    property string valuePreferredTerminal: pluginApi?.pluginSettings?.preferredTerminal || pluginApi?.manifest?.metadata?.defaultSettings?.preferredTerminal || "alacritty"
+    property int valueMinimumThreshold: pluginApi?.pluginSettings?.minimumThreshold || pluginApi?.manifest?.metadata?.defaultSettings?.minimumThreshold || 10
+    property int valueAnimationSpeed: pluginApi?.pluginSettings?.animationSpeed || pluginApi?.manifest?.metadata?.defaultSettings?.animationSpeed || 100
     
     spacing: Style.marginM
     
     Component.onCompleted: {
-        Logger.i("UpdateIndicator", "Settings UI loaded");
+        Logger.i("KeyboardWidget", "Settings UI loaded");
     }
     
-    // Check Interval Setting
+    // Minimum Threshold Setting
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginS
         
         NLabel {
-            label: pluginApi?.tr("settings.checkInterval.label") || "Check Interval"
-            description: pluginApi?.tr("settings.checkInterval.description") || "How often to check for updates (in minutes)"
+            label: pluginApi?.tr("settings.minimumThreshold.label") || "Minimum CPU Threshold"
+            description: pluginApi?.tr("settings.minimumThreshold.description") || "CPU usage percentage required to show active animation"
         }
         
         NSlider {
-            id: intervalSlider
-            from: 5
-            to: 180
-            value: root.valueCheckInterval / 60
-            stepSize: 5
+            id: thresholdSlider
+            from: 1
+            to: 50
+            value: root.valueMinimumThreshold
+            stepSize: 1
             onValueChanged: {
-                root.valueCheckInterval = value * 60
+                root.valueMinimumThreshold = value
             }
         }
         
         Text {
-            text: (pluginApi?.tr("settings.currentInterval") || "Check every {value} minutes").replace("{value}", intervalSlider.value)
+            text: (pluginApi?.tr("settings.currentThreshold") || "Activate at {value}% CPU").replace("{value}", thresholdSlider.value)
             color: Color.mOnSurfaceVariant
             font.pointSize: Style.fontSizeS
         }
     }
     
-    // Terminal Preference Setting
+    // Animation Speed Setting
     ColumnLayout {
         Layout.fillWidth: true
         spacing: Style.marginS
         
         NLabel {
-            label: pluginApi?.tr("settings.terminal.label") || "Preferred Terminal"
-            description: pluginApi?.tr("settings.terminal.description") || "Which terminal to use for running updates"
+            label: pluginApi?.tr("settings.animationSpeed.label") || "Animation Speed"
+            description: pluginApi?.tr("settings.animationSpeed.description") || "Base speed for the animation (lower is faster)"
+        }
+        
+        NSlider {
+            id: speedSlider
+            from: 50
+            to: 300
+            value: root.valueAnimationSpeed
+            stepSize: 10
+            onValueChanged: {
+                root.valueAnimationSpeed = value
+            }
+        }
+        
+        Text {
+            text: (pluginApi?.tr("settings.currentSpeed") || "Speed: {value}ms").replace("{value}", speedSlider.value)
+            color: Color.mOnSurfaceVariant
+            font.pointSize: Style.fontSizeS
+        }
+    }
+    
+    // Display Mode Setting
+    ColumnLayout {
+        Layout.fillWidth: true
+        spacing: Style.marginS
+        
+        NLabel {
+            label: pluginApi?.tr("settings.displayMode.label") || "Display Mode"
+            description: pluginApi?.tr("settings.displayMode.description") || "Choose how the indicator appears"
         }
         
         RowLayout {
@@ -62,42 +88,36 @@ ColumnLayout {
             spacing: Style.marginS
             
             NButton {
-                text: "alacritty"
-                highlighted: root.valuePreferredTerminal === "alacritty"
-                onClicked: root.valuePreferredTerminal = "alacritty"
+                text: "Compact"
+                highlighted: root.valueMinimumThreshold < 15
+                onClicked: root.valueMinimumThreshold = 10
             }
             
             NButton {
-                text: "kitty"
-                highlighted: root.valuePreferredTerminal === "kitty"
-                onClicked: root.valuePreferredTerminal = "kitty"
+                text: "Balanced"
+                highlighted: root.valueMinimumThreshold >= 15 && root.valueMinimumThreshold < 25
+                onClicked: root.valueMinimumThreshold = 20
             }
             
             NButton {
-                text: "konsole"
-                highlighted: root.valuePreferredTerminal === "konsole"
-                onClicked: root.valuePreferredTerminal = "konsole"
+                text: "Relaxed"
+                highlighted: root.valueMinimumThreshold >= 25
+                onClicked: root.valueMinimumThreshold = 30
             }
-        }
-        
-        Text {
-            text: (pluginApi?.tr("settings.currentTerminal") || "Selected: {terminal}").replace("{terminal}", root.valuePreferredTerminal)
-            color: Color.mOnSurfaceVariant
-            font.pointSize: Style.fontSizeS
         }
     }
     
     // Save function
     function saveSettings() {
         if (!pluginApi) {
-            Logger.e("UpdateIndicator", "Cannot save settings: pluginApi is null");
+            Logger.e("KeyboardWidget", "Cannot save settings: pluginApi is null");
             return;
         }
         
-        pluginApi.pluginSettings.checkInterval = root.valueCheckInterval;
-        pluginApi.pluginSettings.preferredTerminal = root.valuePreferredTerminal;
+        pluginApi.pluginSettings.minimumThreshold = root.valueMinimumThreshold;
+        pluginApi.pluginSettings.animationSpeed = root.valueAnimationSpeed;
         
         pluginApi.saveSettings();
-        Logger.i("UpdateIndicator", "Settings saved successfully");
+        Logger.i("KeyboardWidget", "Settings saved successfully");
     }
 }
