@@ -12,7 +12,7 @@ Rectangle {
     property real baseSize: Style.capsuleHeight
     property bool applyUiScale: false
 
-    property string tooltipText: "Launch"
+    property string tooltipText: "Keyboard"
     property string tooltipDirection: BarService.getTooltipDirection()
     property string density: Settings.data.bar.density
     property bool enabled: true
@@ -57,19 +57,25 @@ Rectangle {
         }
     }
 
-    // --- Rocket Button Specific Logic ---
+    // --- Keyboard Widget Specific Logic ---
     property var pluginApi: null
     property ShellScreen screen
     property string widgetId: ""
     property string section: ""
 
-    // Rocket text
+    // Keyboard icon/text
     Text {
         anchors.centerIn: parent
-        text: "ROCKET"
+        text: "⌨"
+        font.pixelSize: {
+            switch (root.density) {
+            case "compact":
+                return Math.max(12, root.width * 0.5);
+            default:
+                return Math.max(16, root.width * 0.55);
+            }
+        }
         color: hovering ? colorFgHover : colorFg
-        font.pointSize: Style.fontSizeS
-        font.bold: true
         
         Behavior on color {
             ColorAnimation {
@@ -107,9 +113,14 @@ Rectangle {
                 TooltipService.hide();
             }
             
+            Logger.i("KeyboardWidget", "Clicked! API:", !!pluginApi, "Screen:", root.screen ? root.screen.name : "null");
+            
             // Open Panel on click
             if (pluginApi) {
-                pluginApi.openPanel(root.screen);
+                var result = pluginApi.openPanel(root.screen);
+                Logger.i("KeyboardWidget", "OpenPanel result:", result);
+            } else {
+                Logger.e("KeyboardWidget", "PluginAPI is null");
             }
             
             if (!root.enabled && !root.allowClickWhenDisabled) {
