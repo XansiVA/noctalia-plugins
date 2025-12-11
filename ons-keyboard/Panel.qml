@@ -10,7 +10,7 @@ Item {
 
     // SmartPanel properties - force to screen bottom center
     readonly property var geometryPlaceholder: panelContainer
-    readonly property bool allowAttach: false
+    readonly property bool allowAttach: true
     
     // Force positioning
     readonly property bool panelAnchorBottom: true
