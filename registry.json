@@ -44,6 +44,17 @@
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
       "lastUpdated": "2025-12-09T13:33:20+01:00"
+    },
+        {
+      "id": "updateindicator",
+      "name": "Update Indicator",
+      "version": "1.0.3",
+      "author": "XansiVA",
+      "description": "A privacy indicator widget that shows when microphone, camera or screen sharing is active.",
+      "repository": "https://github.com/XansiVA/noctalia-plugins",
+      "minNoctaliaVersion": "3.6.0",
+      "license": "MIT",
+      "lastUpdated": "2025-12-09T13:33:20+01:00"
     }
   ]
 }
