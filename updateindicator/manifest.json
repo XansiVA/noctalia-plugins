@@ -1,12 +1,12 @@
 {
-  "id": "update-indicator",
-  "name": "Update Indicator",
+  "id": "",
+  "name": "ONS Keyboard",
   "version": "1.0.4",
   "minNoctaliaVersion": "3.6.0",
   "author": "XansiVA",
   "license": "MIT",
   "repository": "https://github.com/noctalia-dev/noctalia-plugins",
-  "description": "Monitor system updates and manage pacman upgrades from your bar.",
+  "description": "On screen keyboard :3",
   "entryPoints": {
     "barWidget": "BarWidget.qml",
     "panel": "Panel.qml",
