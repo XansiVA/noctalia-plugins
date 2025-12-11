@@ -25,11 +25,8 @@ Item {
 
     Rectangle {
         id: panelContainer
-        anchors.bottom: parent.bottom
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: Style.marginL
-        width: 1100 * Style.uiScaleRatio
-        height: 400 * Style.uiScaleRatio
+        anchors.fill: parent
+        anchors.margins: Style.marginL
         color: Color.mSurface
         radius: Style.radiusL
         border.color: Color.mOutline
