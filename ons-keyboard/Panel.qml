@@ -13,6 +13,8 @@ Item {
     readonly property bool allowAttach: false
     property real contentPreferredWidth: 1100 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
+    
+    panelAnchorBottom: true
 
     anchors.fill: parent
 
@@ -23,6 +25,5 @@ Item {
         anchors.bottom: parent.bottom
         height: 400 * Style.uiScaleRatio
         color: Color.transparent
-
-        }
     }
+}
