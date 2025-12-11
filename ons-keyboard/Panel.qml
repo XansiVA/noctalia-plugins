@@ -21,7 +21,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: 400 * Style.uiScaleRatio
+        height: 900 * Style.uiScaleRatio
         color: Color.transparent
 
         Rectangle {
