@@ -50,7 +50,7 @@
       "name": "Update Indicator",
       "version": "1.0.3",
       "author": "XansiVA",
-      "description": "A privacy indicator widget that shows when microphone, camera or screen sharing is active.",
+      "description": "Monitor system updates and manage pacman upgrades from your bar.",
       "repository": "https://github.com/XansiVA/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
