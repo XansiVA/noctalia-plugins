@@ -6,7 +6,7 @@ import qs.Commons
 import qs.Modules.Bar.Extras
 import qs.Services.UI
 import qs.Widgets
-
+//edit, I still suck at QML
 Rectangle {
     id: root
 
@@ -63,17 +63,12 @@ Rectangle {
     property bool checking: false
     property string lastUpdateTime: "Unknown"
 
-    // Icon based on update status
-    readonly property string updateIcon: updateCount > 0 ? "system-software-update" : "emblem-ok-symbolic"
-    
-    currentIconSource: Qt.resolvedUrl("icons/" + root.updateIcon + ".svg")
-
     tooltipText: {
         if (root.checking) return pluginApi?.tr("tooltip.checking") || "Checking for updates...";
         if (root.updateCount > 0) {
             return (pluginApi?.tr("tooltip.updatesAvailable") || "{count} updates available").replace("{count}", root.updateCount);
         }
-        return (pluginApi?.tr("tooltip.upToDate") || "System up to date");
+        return (pluginApi?.tr("tooltip.upToDate") || "System up to date";
     }
 
     // Check for updates on component load
@@ -113,31 +108,27 @@ Rectangle {
         process.running = true;
     }
 
-    Image {
-        id: iconImage
-        source: root.currentIconSource
+    // Icon using text emoji/symbol
+    Text {
+        id: iconText
         anchors.centerIn: parent
-        
-        width: {
+        text: root.updateCount > 0 ? "⬆" : "✓"
+        font.pointSize: {
             switch (root.density) {
             case "compact":
-                return Math.max(1, root.width * 0.85);
+                return Style.fontSizeL;
             default:
-                return Math.max(1, root.width * 0.85);
+                return Style.fontSizeXL;
             }
         }
-        height: width
+        font.weight: Font.Bold
+        color: root.updateCount > 0 ? Color.mError : Color.mOnSurface
         
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        mipmap: true
-        visible: true
-        
-        // Color overlay for updates available
-        ColorOverlay {
-            anchors.fill: parent
-            source: parent
-            color: root.updateCount > 0 ? Color.mError : Color.mOnSurface
+        Behavior on color {
+            ColorAnimation {
+                duration: Style.animationNormal
+                easing.type: Easing.InOutQuad
+            }
         }
     }
 
