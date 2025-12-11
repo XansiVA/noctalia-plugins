@@ -1,3 +1,4 @@
+//edit 3, wtf button?
 import QtQuick
 import QtQuick.Effects
 import Quickshell
@@ -6,7 +7,7 @@ import qs.Commons
 import qs.Modules.Bar.Extras
 import qs.Services.UI
 import qs.Widgets
-//edit, I still suck at QML
+
 Rectangle {
     id: root
 
@@ -63,12 +64,21 @@ Rectangle {
     property bool checking: false
     property string lastUpdateTime: "Unknown"
 
+    // Detect Light Mode (Dark Text = Light Mode)
+    readonly property bool isLightMode: (Color.mOnSurface.r * 0.299 + Color.mOnSurface.g * 0.587 + Color.mOnSurface.b * 0.114) < 0.5
+    readonly property string iconPrefix: isLightMode ? "icons/black/" : "icons/"
+
+    // Use different icons based on update status
+    readonly property string updateIcon: updateCount > 0 ? "update-available-symbolic.svg" : "update-none-symbolic.svg"
+    
+    currentIconSource: Qt.resolvedUrl(root.iconPrefix + root.updateIcon)
+
     tooltipText: {
         if (root.checking) return pluginApi?.tr("tooltip.checking") || "Checking for updates...";
         if (root.updateCount > 0) {
             return (pluginApi?.tr("tooltip.updatesAvailable") || "{count} updates available").replace("{count}", root.updateCount);
         }
-        return (pluginApi?.tr("tooltip.upToDate") || "System up to date";
+        return (pluginApi?.tr("tooltip.upToDate") || "System up to date");
     }
 
     // Check for updates on component load
@@ -108,28 +118,27 @@ Rectangle {
         process.running = true;
     }
 
-    // Icon using text emoji/symbol
-    Text {
-        id: iconText
+    Image {
+        id: iconImage
+        source: root.currentIconSource
         anchors.centerIn: parent
-        text: root.updateCount > 0 ? "⬆" : "✓"
-        font.pointSize: {
+        anchors.horizontalCenterOffset: -3
+        anchors.verticalCenterOffset: -1
+        
+        width: {
             switch (root.density) {
             case "compact":
-                return Style.fontSizeL;
+                return Math.max(1, root.width * 0.85);
             default:
-                return Style.fontSizeXL;
+                return Math.max(1, root.width * 0.85);
             }
         }
-        font.weight: Font.Bold
-        color: root.updateCount > 0 ? Color.mError : Color.mOnSurface
+        height: width
         
-        Behavior on color {
-            ColorAnimation {
-                duration: Style.animationNormal
-                easing.type: Easing.InOutQuad
-            }
-        }
+        fillMode: Image.PreserveAspectFit
+        smooth: true
+        mipmap: true
+        visible: true
     }
 
     // Update badge
