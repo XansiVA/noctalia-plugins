@@ -14,7 +14,7 @@ Rectangle {
 
     property url currentIconSource
 
-    property string tooltipText
+    property string tooltipText: "Update Indicator"
     property string tooltipDirection: BarService.getTooltipDirection()
     property string density: Settings.data.bar.density
     property bool enabled: true
@@ -40,10 +40,10 @@ Rectangle {
     implicitHeight: applyUiScale ? Math.round(baseSize * Style.uiScaleRatio) : Math.round(baseSize)
 
     opacity: root.enabled ? Style.opacityFull : Style.opacityMedium
-    color: "transparent"
+    color: Color.mPrimary
     radius: Math.min((customRadius >= 0 ? customRadius : Style.iRadiusL), width / 2)
-    border.color: "transparent"
-    border.width: 0
+    border.color: Color.mOutline
+    border.width: 1
 
     Behavior on color {
         ColorAnimation {
@@ -58,91 +58,13 @@ Rectangle {
     property string widgetId: ""
     property string section: ""
 
-    property int updateCount: 0
-    property bool checking: false
-    
-    // Detect Light Mode (Dark Text = Light Mode)
-    readonly property bool isLightMode: (Color.mOnSurface.r * 0.299 + Color.mOnSurface.g * 0.587 + Color.mOnSurface.b * 0.114) < 0.5
-    readonly property string iconPrefix: isLightMode ? "icons/black/" : "icons/"
-
-    readonly property var updateIcon: root.iconPrefix + (updateCount > 0 ? "update-available.svg" : "update-none.svg")
-
-    Component.onCompleted: {
-        checkForUpdates();
-    }
-
-    Timer {
-        interval: (pluginApi?.pluginSettings?.checkInterval || 3600) * 1000
-        running: true
-        repeat: true
-        onTriggered: checkForUpdates()
-    }
-
-    function checkForUpdates() {
-        root.checking = true;
-        
-        var process = Quickshell.Process.get("sh", ["-c", "checkupdates 2>/dev/null | wc -l"]);
-        process.finished.connect(function() {
-            var output = process.readAll().trim();
-            root.updateCount = parseInt(output) || 0;
-            root.checking = false;
-        });
-        process.running = true;
-    }
-
-    currentIconSource: Qt.resolvedUrl(root.updateIcon)
-
-    tooltipText: {
-        if (!pluginApi) return "No API";
-        if (root.checking) return pluginApi.tr("tooltip.checking") || "Checking...";
-        if (root.updateCount > 0) {
-            return (pluginApi.tr("tooltip.updatesAvailable") || "{count} updates available").replace("{count}", root.updateCount);
-        }
-        return pluginApi.tr("tooltip.upToDate") || "Up to date";
-    }
-    
-    Image {
-        id: iconImage
-        source: root.currentIconSource
+    // JUST A TEXT THAT SAYS "UP"
+    Text {
         anchors.centerIn: parent
-        anchors.horizontalCenterOffset: -3
-        anchors.verticalCenterOffset: -1
-        
-        width: {
-            switch (root.density) {
-            case "compact":
-                return Math.max(1, root.width * 0.85);
-            default:
-                return Math.max(1, root.width * 0.85);
-            }
-        }
-        height: width
-        
-        fillMode: Image.PreserveAspectFit
-        smooth: true
-        mipmap: true
-        visible: true
-    }
-    
-    // Update count badge
-    Rectangle {
-        visible: root.updateCount > 0
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.margins: 2
-        width: Math.max(12, badgeText.width + 4)
-        height: 12
-        radius: 6
-        color: Color.mError
-
-        Text {
-            id: badgeText
-            anchors.centerIn: parent
-            text: root.updateCount > 99 ? "99+" : root.updateCount
-            color: Color.mOnError
-            font.pointSize: 6
-            font.bold: true
-        }
+        text: "UP"
+        color: Color.mOnPrimary
+        font.pointSize: Style.fontSizeM
+        font.bold: true
     }
 
     MouseArea {
@@ -172,7 +94,7 @@ Rectangle {
 
             // Open Panel on click
             if (pluginApi) {
-                var result = pluginApi.openPanel(root.screen);
+                pluginApi.openPanel(root.screen);
             }
             
             if (!root.enabled && !root.allowClickWhenDisabled) {
