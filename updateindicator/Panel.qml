@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
-import Quickshell.Services
 import qs.Commons
 import qs.Services.System
 import qs.Widgets
@@ -60,28 +59,15 @@ Item {
     }
 
     function findTerminal() {
-        var terminals = ["alacritty", "kitty", "konsole", "gnome-terminal", "xterm"];
-        
-        for (var i = 0; i < terminals.length; i++) {
-            var process = Quickshell.Process.get("which", [terminals[i]]);
-            process.finished.connect(function() {
-                var output = process.readAll().trim();
-                if (output.length > 0) {
-                    Logger.i("UpdateIndicator", "Found terminal: " + terminals[i]);
-                    return terminals[i];
-                }
-            });
-            process.running = true;
-        }
-        
+        // Just use the preferred terminal from settings, or default to alacritty
         return pluginApi?.pluginSettings?.preferredTerminal || "alacritty";
     }
 
     function runUpdateCommand(command) {
         var terminal = findTerminal();
-        Logger.i("UpdateIndicator", "Running: " + terminal + " -e " + command);
         
-        var process = Quickshell.Process.get(terminal, ["-e", "sh", "-c", command + "; echo 'Press ENTER to close'; read"]);
+        var fullCommand = terminal + " -e sh -c '" + command + "; echo Press ENTER to close; read'";
+        var process = Quickshell.Process.get("sh", ["-c", fullCommand]);
         process.running = true;
     }
 
