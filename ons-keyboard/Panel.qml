@@ -20,8 +20,8 @@ Item {
     readonly property bool panelAnchorTop: false
     readonly property bool panelAnchorVerticalCenter: false
     
-    property real preferredWidth: 1100 * Style.uiScaleRatio
-    property real preferredHeight: 400 * Style.uiScaleRatio
+    property real preferredWidth: 1600 * Style.uiScaleRatio
+    property real preferredHeight: 308 * Style.uiScaleRatio
 
     Rectangle {
         id: panelContainer
