@@ -12,9 +12,7 @@ Rectangle {
     property real baseSize: Style.capsuleHeight
     property bool applyUiScale: false
 
-    property url currentIconSource
-
-    property string tooltipText: "Update Indicator"
+    property string tooltipText: "Launch"
     property string tooltipDirection: BarService.getTooltipDirection()
     property string density: Settings.data.bar.density
     property bool enabled: true
@@ -40,9 +38,9 @@ Rectangle {
     implicitHeight: applyUiScale ? Math.round(baseSize * Style.uiScaleRatio) : Math.round(baseSize)
 
     opacity: root.enabled ? Style.opacityFull : Style.opacityMedium
-    color: Color.mPrimary
+    color: hovering ? colorBgHover : colorBg
     radius: Math.min((customRadius >= 0 ? customRadius : Style.iRadiusL), width / 2)
-    border.color: Color.mOutline
+    border.color: hovering ? colorBorderHover : colorBorder
     border.width: 1
 
     Behavior on color {
@@ -52,19 +50,33 @@ Rectangle {
         }
     }
 
-    // --- Update Indicator Specific Logic ---
+    Behavior on border.color {
+        ColorAnimation {
+            duration: Style.animationNormal
+            easing.type: Easing.InOutQuad
+        }
+    }
+
+    // --- Rocket Button Specific Logic ---
     property var pluginApi: null
     property ShellScreen screen
     property string widgetId: ""
     property string section: ""
 
-    // JUST A TEXT THAT SAYS "UP"
+    // Rocket text
     Text {
         anchors.centerIn: parent
-        text: "UP"
-        color: Color.mOnPrimary
-        font.pointSize: Style.fontSizeM
+        text: "ROCKET"
+        color: hovering ? colorFgHover : colorFg
+        font.pointSize: Style.fontSizeS
         font.bold: true
+        
+        Behavior on color {
+            ColorAnimation {
+                duration: Style.animationNormal
+                easing.type: Easing.InOutQuad
+            }
+        }
     }
 
     MouseArea {
@@ -73,6 +85,7 @@ Rectangle {
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         hoverEnabled: true
+        
         onEntered: {
             root.hovering = root.enabled ? true : false;
             if (root.tooltipText) {
@@ -80,6 +93,7 @@ Rectangle {
             }
             root.entered();
         }
+        
         onExited: {
             root.hovering = false;
             if (root.tooltipText) {
@@ -87,11 +101,12 @@ Rectangle {
             }
             root.exited();
         }
+        
         onClicked: function (mouse) {
             if (root.tooltipText) {
                 TooltipService.hide();
             }
-
+            
             // Open Panel on click
             if (pluginApi) {
                 pluginApi.openPanel(root.screen);
@@ -100,6 +115,7 @@ Rectangle {
             if (!root.enabled && !root.allowClickWhenDisabled) {
                 return;
             }
+            
             if (mouse.button === Qt.LeftButton) {
                 root.clicked();
             } else if (mouse.button === Qt.RightButton) {
@@ -108,6 +124,7 @@ Rectangle {
                 root.middleClicked();
             }
         }
+        
         onWheel: wheel => root.wheel(wheel.angleDelta.y)
     }
 }
