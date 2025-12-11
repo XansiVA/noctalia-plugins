@@ -12,13 +12,16 @@ Item {
     readonly property var geometryPlaceholder: panelContainer
     readonly property bool allowAttach: false
     property real contentPreferredWidth: 0  // 0 = full width
-    property real contentPreferredHeight: 200 * Style.uiScaleRatio
+    property real contentPreferredHeight: 400 * Style.uiScaleRatio
 
     anchors.fill: parent
 
     Rectangle {
         id: panelContainer
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 400 * Style.uiScaleRatio
         color: Color.transparent
 
         Rectangle {
