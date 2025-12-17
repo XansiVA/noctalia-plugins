@@ -1,7 +1,7 @@
-import Quickshell.Io
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
+import Quickshell.Io
 import qs.Commons
 import qs.Widgets
 
@@ -32,8 +32,8 @@ Item {
         blockLoading: true
         
         Component.onCompleted: {
-            console.log("hostnameFile loaded, text length:", text.length)
-            console.log("hostnameFile content:", text)
+            console.log("hostnameFile loaded, text length:", text().length)
+            console.log("hostnameFile content:", text())
         }
     }
     
@@ -43,7 +43,7 @@ Item {
         blockLoading: true
         
         Component.onCompleted: {
-            console.log("osReleaseFile loaded, text length:", text.length)
+            console.log("osReleaseFile loaded, text length:", text().length)
         }
     }
     
@@ -53,7 +53,7 @@ Item {
         blockLoading: true
         
         Component.onCompleted: {
-            console.log("cpuinfoFile loaded, text length:", text.length)
+            console.log("cpuinfoFile loaded, text length:", text().length)
         }
     }
     
@@ -63,35 +63,55 @@ Item {
         blockLoading: true
         
         Component.onCompleted: {
-            console.log("meminfoFile loaded, text length:", text.length)
+            console.log("meminfoFile loaded, text length:", text().length)
         }
     }
     
     // Parse system info from files
-    readonly property string hostname: hostnameFile.text.trim()
+    readonly property string hostname: {
+        var text = hostnameFile.text().trim()
+        console.log("Hostname:", text)
+        return text || "Unknown"
+    }
     
     readonly property string distro: {
-        var lines = osReleaseFile.text.split('\n')
+        var text = osReleaseFile.text()
+        console.log("os-release length:", text.length)
+        if (text.length === 0) return "Linux"
+        
+        var lines = text.split('\n')
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].startsWith('PRETTY_NAME=')) {
-                return lines[i].substring(13).replace(/"/g, '')
+                var result = lines[i].substring(13).replace(/"/g, '')
+                console.log("Distro:", result)
+                return result
             }
         }
         return "Linux"
     }
     
     readonly property string cpu: {
-        var lines = cpuinfoFile.text.split('\n')
+        var text = cpuinfoFile.text()
+        console.log("cpuinfo length:", text.length)
+        if (text.length === 0) return "Unknown CPU"
+        
+        var lines = text.split('\n')
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].indexOf('model name') !== -1) {
-                return lines[i].split(':')[1].trim()
+                var result = lines[i].split(':')[1].trim()
+                console.log("CPU:", result)
+                return result
             }
         }
         return "Unknown CPU"
     }
     
     readonly property string ramInfo: {
-        var lines = meminfoFile.text.split('\n')
+        var text = meminfoFile.text()
+        console.log("meminfo length:", text.length)
+        if (text.length === 0) return "? GB / ? GB"
+        
+        var lines = text.split('\n')
         var total = 0
         var available = 0
         
@@ -107,7 +127,9 @@ Item {
             var used = total - available
             var usedGB = (used / 1024 / 1024).toFixed(1)
             var totalGB = (total / 1024 / 1024).toFixed(1)
-            return usedGB + " GB / " + totalGB + " GB"
+            var result = usedGB + " GB / " + totalGB + " GB"
+            console.log("RAM:", result)
+            return result
         }
         return "? GB / ? GB"
     }
@@ -126,12 +148,12 @@ Item {
             anchors.margins: Style.marginXL
             spacing: Style.marginXL
             
-            // Distro logo
+            // Distro logo - moved to top left
             Image {
                 id: distroLogo
-                Layout.preferredWidth: 200
-                Layout.preferredHeight: 200
-                Layout.alignment: Qt.AlignVCenter
+                Layout.preferredWidth: 180
+                Layout.preferredHeight: 180
+                Layout.alignment: Qt.AlignTop | Qt.AlignLeft
                 source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/ons-keyboard/icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
