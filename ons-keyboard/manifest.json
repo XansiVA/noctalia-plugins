@@ -1,12 +1,12 @@
 {
-  "id": "ons-keyboard",
-  "name": "ONS Keyboard",
-  "version": "1.0.6",
-  "minNoctaliaVersion": "3.6.0",
+  "id": "panelfetch",
+  "name": "Panel Fetch",
+  "version": "1.1.0",
+  "minNoctaliaVersion": "3.6.1",
   "author": "XansiVA",
   "license": "MIT",
   "repository": "https://github.com/XansiVA/noctalia-plugins",
-  "description": "On screen keyboard :3",
+  "description": "A neofetch but in a QML panel!",
   "entryPoints": {
     "barWidget": "BarWidget.qml",
     "panel": "Panel.qml",
