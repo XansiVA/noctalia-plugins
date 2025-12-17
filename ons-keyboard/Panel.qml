@@ -29,24 +29,41 @@ Item {
         id: hostnameFile
         path: "file:///etc/hostname"
         blockLoading: true
+        
+        Component.onCompleted: {
+            console.log("hostnameFile loaded, text length:", text.length)
+            console.log("hostnameFile content:", text)
+        }
     }
     
     FileView {
         id: osReleaseFile
         path: "file:///etc/os-release"
         blockLoading: true
+        
+        Component.onCompleted: {
+            console.log("osReleaseFile loaded, text length:", text.length)
+        }
     }
     
     FileView {
         id: cpuinfoFile
         path: "file:///proc/cpuinfo"
         blockLoading: true
+        
+        Component.onCompleted: {
+            console.log("cpuinfoFile loaded, text length:", text.length)
+        }
     }
     
     FileView {
         id: meminfoFile
         path: "file:///proc/meminfo"
         blockLoading: true
+        
+        Component.onCompleted: {
+            console.log("meminfoFile loaded, text length:", text.length)
+        }
     }
     
     // Parse system info from files
