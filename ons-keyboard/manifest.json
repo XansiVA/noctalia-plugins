@@ -2,7 +2,7 @@
   "id": "panelfetch",
   "name": "Panel Fetch",
   "version": "1.1.0",
-  "minNoctaliaVersion": "3.6.1",
+  "minNoctaliaVersion": "3.6.0",
   "author": "XansiVA",
   "license": "MIT",
   "repository": "https://github.com/XansiVA/noctalia-plugins",
