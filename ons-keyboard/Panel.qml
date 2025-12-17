@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
-import Qt.labs.platform
 import qs.Commons
 import qs.Widgets
 
@@ -25,101 +24,16 @@ Item {
     property real contentPreferredWidth: 800 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
-    // System info properties
-    property string hostname: ""
-    property string distro: "Arch Linux"
-    property string cpu: ""
-    property string ramUsed: ""
-    property string cpuTemp: ""
+    // SystemInfo object - create from C++ backend
+    property var systemInfo: null
     
     Component.onCompleted: {
-        fetchSystemInfo()
-    }
-    
-    function fetchSystemInfo() {
-        console.log("Attempting to fetch system info...")
+        console.log("Panel loaded - attempting to get system info from C++ backend")
         
-        // Try different methods to get system info
-        
-        // Method 1: Try pluginApi if available
-        if (pluginApi && pluginApi.createProcess) {
-            console.log("Using pluginApi.createProcess")
-            fetchViaPluginApi()
-        } 
-        // Method 2: Try StandardPaths to read files directly
-        else {
-            console.log("Trying to read system files directly")
-            fetchViaFileSystem()
-        }
-    }
-    
-    function fetchViaPluginApi() {
-        try {
-            // Hostname
-            var hostnameProc = pluginApi.createProcess()
-            hostnameProc.setProgram("hostname")
-            hostnameProc.finished.connect(function() {
-                hostname = hostnameProc.readAllStandardOutput().trim()
-                console.log("Hostname:", hostname)
-            })
-            hostnameProc.startDetached()
-            
-            // CPU info
-            var cpuProc = pluginApi.createProcess()
-            cpuProc.setProgram("sh")
-            cpuProc.setArguments(["-c", "cat /proc/cpuinfo | grep 'model name' | head -n1 | cut -d':' -f2"])
-            cpuProc.finished.connect(function() {
-                cpu = cpuProc.readAllStandardOutput().trim()
-                console.log("CPU:", cpu)
-            })
-            cpuProc.startDetached()
-            
-            // RAM info
-            var ramProc = pluginApi.createProcess()
-            ramProc.setProgram("sh")
-            ramProc.setArguments(["-c", "free -h | awk '/^Mem:/ {print $3 \" / \" $2}'"])
-            ramProc.finished.connect(function() {
-                ramUsed = ramProc.readAllStandardOutput().trim()
-                console.log("RAM:", ramUsed)
-            })
-            ramProc.startDetached()
-            
-            // CPU Temperature
-            var tempProc = pluginApi.createProcess()
-            tempProc.setProgram("sh")
-            tempProc.setArguments(["-c", "sensors | grep 'Package id 0:' | awk '{print $4}' || sensors | grep 'Tdie:' | awk '{print $2}' || echo 'N/A'"])
-            tempProc.finished.connect(function() {
-                cpuTemp = tempProc.readAllStandardOutput().trim()
-                console.log("Temp:", cpuTemp)
-            })
-            tempProc.startDetached()
-        } catch (e) {
-            console.error("Error fetching via pluginApi:", e)
-        }
-    }
-    
-    function fetchViaFileSystem() {
-        // Try to read /proc/cpuinfo directly
-        try {
-            var xhr = new XMLHttpRequest()
-            xhr.open("GET", "file:///proc/cpuinfo")
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === XMLHttpRequest.DONE) {
-                    if (xhr.status === 200) {
-                        var lines = xhr.responseText.split('\n')
-                        for (var i = 0; i < lines.length; i++) {
-                            if (lines[i].indexOf('model name') !== -1) {
-                                cpu = lines[i].split(':')[1].trim()
-                                break
-                            }
-                        }
-                    }
-                }
-            }
-            xhr.send()
-        } catch (e) {
-            console.error("Could not read system files:", e)
-            cpu = "Unable to fetch"
+        // Try to get SystemInfo from the plugin context
+        if (pluginApi && pluginApi.systemInfo) {
+            systemInfo = pluginApi.systemInfo
+            console.log("SystemInfo loaded from pluginApi")
         }
     }
     
@@ -143,7 +57,7 @@ Item {
                 Layout.preferredWidth: 200
                 Layout.preferredHeight: 200
                 Layout.alignment: Qt.AlignVCenter
-                source: "file:///icons/arch.svg"
+                source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/ons-keyboard/icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 
@@ -151,7 +65,9 @@ Item {
                     if (status === Image.Error) {
                         console.log("Failed to load image from:", source)
                     } else if (status === Image.Ready) {
-                        console.log("Image loaded successfully")
+                        console.log("Image loaded successfully from GitHub")
+                    } else if (status === Image.Loading) {
+                        console.log("Loading image from GitHub...")
                     }
                 }
             }
@@ -179,27 +95,27 @@ Item {
                 
                 InfoRow {
                     label: "Hostname"
-                    value: hostname || "fetching..."
+                    value: systemInfo ? systemInfo.hostname : "Loading..."
                 }
                 
                 InfoRow {
                     label: "Distro"
-                    value: distro
+                    value: systemInfo ? systemInfo.distro : "Loading..."
                 }
                 
                 InfoRow {
                     label: "CPU"
-                    value: cpu || "fetching..."
+                    value: systemInfo ? systemInfo.cpu : "Loading..."
                 }
                 
                 InfoRow {
                     label: "Memory"
-                    value: ramUsed || "fetching..."
+                    value: systemInfo ? (systemInfo.ramUsed + " / " + systemInfo.ramTotal) : "Loading..."
                 }
                 
                 InfoRow {
                     label: "CPU Temp"
-                    value: cpuTemp || "fetching..."
+                    value: systemInfo ? systemInfo.cpuTemp : "Loading..."
                 }
                 
                 Item {
