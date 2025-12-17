@@ -50,7 +50,7 @@
       "name": "Panel Fetch",
       "version": "1.1.0",
       "author": "XansiVA",
-      "description": "",
+      "description": "a neofetch but in a QML Panel!",
       "repository": "https://github.com/XansiVA/noctalia-plugins",
       "minNoctaliaVersion": "3.6.0",
       "license": "MIT",
