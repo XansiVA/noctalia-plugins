@@ -247,7 +247,7 @@ Item {
                 Layout.preferredWidth: 180
                 Layout.preferredHeight: 180
                 Layout.alignment: Qt.AlignTop | Qt.AlignLeft
-                source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/ons-keyboard/icons/arch.svg"
+                source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/panelfetch/icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
                 
