@@ -24,17 +24,74 @@ Item {
     property real contentPreferredWidth: 800 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
-    // SystemInfo object - create from C++ backend
-    property var systemInfo: null
+    // FileView to read system files directly
+    FileView {
+        id: hostnameFile
+        path: "file:///etc/hostname"
+        blockLoading: true
+    }
     
-    Component.onCompleted: {
-        console.log("Panel loaded - attempting to get system info from C++ backend")
-        
-        // Try to get SystemInfo from the plugin context
-        if (pluginApi && pluginApi.systemInfo) {
-            systemInfo = pluginApi.systemInfo
-            console.log("SystemInfo loaded from pluginApi")
+    FileView {
+        id: osReleaseFile
+        path: "file:///etc/os-release"
+        blockLoading: true
+    }
+    
+    FileView {
+        id: cpuinfoFile
+        path: "file:///proc/cpuinfo"
+        blockLoading: true
+    }
+    
+    FileView {
+        id: meminfoFile
+        path: "file:///proc/meminfo"
+        blockLoading: true
+    }
+    
+    // Parse system info from files
+    readonly property string hostname: hostnameFile.text.trim()
+    
+    readonly property string distro: {
+        var lines = osReleaseFile.text.split('\n')
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('PRETTY_NAME=')) {
+                return lines[i].substring(13).replace(/"/g, '')
+            }
         }
+        return "Linux"
+    }
+    
+    readonly property string cpu: {
+        var lines = cpuinfoFile.text.split('\n')
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].indexOf('model name') !== -1) {
+                return lines[i].split(':')[1].trim()
+            }
+        }
+        return "Unknown CPU"
+    }
+    
+    readonly property string ramInfo: {
+        var lines = meminfoFile.text.split('\n')
+        var total = 0
+        var available = 0
+        
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('MemTotal:')) {
+                total = parseInt(lines[i].split(/\s+/)[1])
+            } else if (lines[i].startsWith('MemAvailable:')) {
+                available = parseInt(lines[i].split(/\s+/)[1])
+            }
+        }
+        
+        if (total > 0) {
+            var used = total - available
+            var usedGB = (used / 1024 / 1024).toFixed(1)
+            var totalGB = (total / 1024 / 1024).toFixed(1)
+            return usedGB + " GB / " + totalGB + " GB"
+        }
+        return "? GB / ? GB"
     }
     
     Rectangle {
@@ -66,8 +123,6 @@ Item {
                         console.log("Failed to load image from:", source)
                     } else if (status === Image.Ready) {
                         console.log("Image loaded successfully from GitHub")
-                    } else if (status === Image.Loading) {
-                        console.log("Loading image from GitHub...")
                     }
                 }
             }
@@ -95,27 +150,27 @@ Item {
                 
                 InfoRow {
                     label: "Hostname"
-                    value: systemInfo ? systemInfo.hostname : "Loading..."
+                    value: hostname || "Unknown"
                 }
                 
                 InfoRow {
                     label: "Distro"
-                    value: systemInfo ? systemInfo.distro : "Loading..."
+                    value: distro
                 }
                 
                 InfoRow {
                     label: "CPU"
-                    value: systemInfo ? systemInfo.cpu : "Loading..."
+                    value: cpu
                 }
                 
                 InfoRow {
                     label: "Memory"
-                    value: systemInfo ? (systemInfo.ramUsed + " / " + systemInfo.ramTotal) : "Loading..."
+                    value: ramInfo
                 }
                 
                 InfoRow {
                     label: "CPU Temp"
-                    value: systemInfo ? systemInfo.cpuTemp : "Loading..."
+                    value: "N/A (needs sensors)"
                 }
                 
                 Item {
