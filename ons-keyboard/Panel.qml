@@ -67,6 +67,52 @@ Item {
         }
     }
     
+    // Process for getting network type
+    Process {
+        id: networkProc
+        command: ["sh", "-c", "ip route get 1.1.1.1 | grep -oP 'dev \\K\\S+' | head -n1"]
+        running: true
+    }
+    
+    // Process for getting GPU info
+    Process {
+        id: gpuProc
+        command: ["sh", "-c", "lspci | grep -i 'vga\\|3d\\|display' | head -n1 | cut -d':' -f3"]
+        running: true
+    }
+    
+    // Process for WM detection
+    Process {
+        id: wmProc
+        command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP"]
+        running: true
+    }
+    
+    // Process for package counts
+    Process {
+        id: pacmanProc
+        command: ["sh", "-c", "pacman -Qq 2>/dev/null | wc -l"]
+        running: true
+    }
+    
+    Process {
+        id: nixProc
+        command: ["sh", "-c", "nix-env --query 2>/dev/null | wc -l"]
+        running: true
+    }
+    
+    Process {
+        id: xbpsProc
+        command: ["sh", "-c", "xbps-query -l 2>/dev/null | wc -l"]
+        running: true
+    }
+    
+    Process {
+        id: gentooProc
+        command: ["sh", "-c", "qlist -I 2>/dev/null | wc -l"]
+        running: true
+    }
+    
     // Parse system info from files
     readonly property string hostname: {
         var text = hostnameFile.text().trim()
@@ -132,6 +178,53 @@ Item {
             return result
         }
         return "? GB / ? GB"
+    }
+    
+    readonly property string networkType: {
+        var iface = networkProc.stdout.trim()
+        console.log("Network interface:", iface)
+        if (iface.startsWith('wl')) return "WiFi (" + iface + ")"
+        if (iface.startsWith('en') || iface.startsWith('eth')) return "Ethernet (" + iface + ")"
+        return iface || "Unknown"
+    }
+    
+    readonly property string gpu: {
+        var gpuText = gpuProc.stdout.trim()
+        console.log("GPU:", gpuText)
+        return gpuText || "Unknown GPU"
+    }
+    
+    readonly property string wm: {
+        var desktop = wmProc.stdout.trim().toLowerCase()
+        console.log("XDG_CURRENT_DESKTOP:", desktop)
+        
+        // Check common WM names
+        if (desktop.includes('niri')) return "niri"
+        if (desktop.includes('hyprland')) return "Hyprland"
+        if (desktop.includes('sway')) return "Sway"
+        if (desktop.includes('mango')) return "mangowc"
+        
+        // Fallback - just return what we got
+        return desktop || "Unknown WM"
+    }
+    
+    readonly property string packages: {
+        var pkgs = []
+        
+        var pacman = parseInt(pacmanProc.stdout.trim())
+        if (pacman > 0) pkgs.push(pacman + " (pacman)")
+        
+        var nix = parseInt(nixProc.stdout.trim())
+        if (nix > 0) pkgs.push(nix + " (nix)")
+        
+        var xbps = parseInt(xbpsProc.stdout.trim())
+        if (xbps > 0) pkgs.push(xbps + " (xbps)")
+        
+        var gentoo = parseInt(gentooProc.stdout.trim())
+        if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
+        
+        console.log("Packages:", pkgs.join(", "))
+        return pkgs.length > 0 ? pkgs.join(", ") : "0"
     }
     
     Rectangle {
@@ -206,6 +299,26 @@ Item {
                 InfoRow {
                     label: "Memory"
                     value: ramInfo
+                }
+                
+                InfoRow {
+                    label: "GPU"
+                    value: gpu
+                }
+                
+                InfoRow {
+                    label: "Network"
+                    value: networkType
+                }
+                
+                InfoRow {
+                    label: "WM"
+                    value: wm
+                }
+                
+                InfoRow {
+                    label: "Packages"
+                    value: packages
                 }
                 
                 InfoRow {
