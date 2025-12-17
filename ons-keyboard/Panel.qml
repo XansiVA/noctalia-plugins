@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
+import Qt.labs.platform
 import qs.Commons
 import qs.Widgets
 
@@ -29,7 +30,6 @@ Item {
     property string distro: "Arch Linux"
     property string cpu: ""
     property string ramUsed: ""
-    property string ramTotal: ""
     property string cpuTemp: ""
     
     Component.onCompleted: {
@@ -37,37 +37,90 @@ Item {
     }
     
     function fetchSystemInfo() {
-        // Hostname
-        var hostnameProc = pluginApi.createProcess("hostname")
-        hostnameProc.readyReadStandardOutput.connect(function() {
-            hostname = hostnameProc.readAllStandardOutput().trim()
-        })
-        hostnameProc.start()
+        console.log("Attempting to fetch system info...")
         
-        // CPU info
-        var cpuProc = pluginApi.createProcess("sh")
-        cpuProc.setArguments(["-c", "cat /proc/cpuinfo | grep 'model name' | head -n1 | cut -d':' -f2"])
-        cpuProc.readyReadStandardOutput.connect(function() {
-            cpu = cpuProc.readAllStandardOutput().trim()
-        })
-        cpuProc.start()
+        // Try different methods to get system info
         
-        // RAM info
-        var ramProc = pluginApi.createProcess("sh")
-        ramProc.setArguments(["-c", "free -h | awk '/^Mem:/ {print $3 \" / \" $2}'"])
-        ramProc.readyReadStandardOutput.connect(function() {
-            var ramInfo = ramProc.readAllStandardOutput().trim()
-            ramUsed = ramInfo
-        })
-        ramProc.start()
-        
-        // CPU Temperature
-        var tempProc = pluginApi.createProcess("sh")
-        tempProc.setArguments(["-c", "sensors | grep 'Package id 0:' | awk '{print $4}' || sensors | grep 'Tdie:' | awk '{print $2}' || echo 'N/A'"])
-        tempProc.readyReadStandardOutput.connect(function() {
-            cpuTemp = tempProc.readAllStandardOutput().trim()
-        })
-        tempProc.start()
+        // Method 1: Try pluginApi if available
+        if (pluginApi && pluginApi.createProcess) {
+            console.log("Using pluginApi.createProcess")
+            fetchViaPluginApi()
+        } 
+        // Method 2: Try StandardPaths to read files directly
+        else {
+            console.log("Trying to read system files directly")
+            fetchViaFileSystem()
+        }
+    }
+    
+    function fetchViaPluginApi() {
+        try {
+            // Hostname
+            var hostnameProc = pluginApi.createProcess()
+            hostnameProc.setProgram("hostname")
+            hostnameProc.finished.connect(function() {
+                hostname = hostnameProc.readAllStandardOutput().trim()
+                console.log("Hostname:", hostname)
+            })
+            hostnameProc.startDetached()
+            
+            // CPU info
+            var cpuProc = pluginApi.createProcess()
+            cpuProc.setProgram("sh")
+            cpuProc.setArguments(["-c", "cat /proc/cpuinfo | grep 'model name' | head -n1 | cut -d':' -f2"])
+            cpuProc.finished.connect(function() {
+                cpu = cpuProc.readAllStandardOutput().trim()
+                console.log("CPU:", cpu)
+            })
+            cpuProc.startDetached()
+            
+            // RAM info
+            var ramProc = pluginApi.createProcess()
+            ramProc.setProgram("sh")
+            ramProc.setArguments(["-c", "free -h | awk '/^Mem:/ {print $3 \" / \" $2}'"])
+            ramProc.finished.connect(function() {
+                ramUsed = ramProc.readAllStandardOutput().trim()
+                console.log("RAM:", ramUsed)
+            })
+            ramProc.startDetached()
+            
+            // CPU Temperature
+            var tempProc = pluginApi.createProcess()
+            tempProc.setProgram("sh")
+            tempProc.setArguments(["-c", "sensors | grep 'Package id 0:' | awk '{print $4}' || sensors | grep 'Tdie:' | awk '{print $2}' || echo 'N/A'"])
+            tempProc.finished.connect(function() {
+                cpuTemp = tempProc.readAllStandardOutput().trim()
+                console.log("Temp:", cpuTemp)
+            })
+            tempProc.startDetached()
+        } catch (e) {
+            console.error("Error fetching via pluginApi:", e)
+        }
+    }
+    
+    function fetchViaFileSystem() {
+        // Try to read /proc/cpuinfo directly
+        try {
+            var xhr = new XMLHttpRequest()
+            xhr.open("GET", "file:///proc/cpuinfo")
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === XMLHttpRequest.DONE) {
+                    if (xhr.status === 200) {
+                        var lines = xhr.responseText.split('\n')
+                        for (var i = 0; i < lines.length; i++) {
+                            if (lines[i].indexOf('model name') !== -1) {
+                                cpu = lines[i].split(':')[1].trim()
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            xhr.send()
+        } catch (e) {
+            console.error("Could not read system files:", e)
+            cpu = "Unable to fetch"
+        }
     }
     
     Rectangle {
@@ -93,6 +146,14 @@ Item {
                 source: "file:///icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
+                
+                onStatusChanged: {
+                    if (status === Image.Error) {
+                        console.log("Failed to load image from:", source)
+                    } else if (status === Image.Ready) {
+                        console.log("Image loaded successfully")
+                    }
+                }
             }
             
             // System info
