@@ -25,9 +25,7 @@ Item {
     property real contentPreferredWidth: 800 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
-    // State properties for dynamic data
-    property string networkTypeValue: "Loading..."
-    property string gpuValue: "Loading..."
+    // State properties for dynamic data that needs Process
     property string wmValue: "Loading..."
     property string packagesValue: "Loading..."
     
@@ -56,74 +54,53 @@ Item {
         blockLoading: false
     }
     
-    // Process for getting network type
-    Process {
-        id: networkProc
-        command: ["sh", "-c", "ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \\K\\S+' | head -n1"]
-        running: false
-        
-        onExited: {
-            console.log("Network process exited with code:", exitCode)
-            var iface = stdout.trim()
-            console.log("Network interface output:", iface)
-            if (iface.startsWith('wl')) networkTypeValue = "WiFi (" + iface + ")"
-            else if (iface.startsWith('en') || iface.startsWith('eth')) networkTypeValue = "Ethernet (" + iface + ")"
-            else if (iface) networkTypeValue = iface
-            else networkTypeValue = "Unknown"
-        }
-        
-        Component.onCompleted: {
-            console.log("Starting network process...")
-            running = true
-        }
+    // GPU info from sysfs
+    FileView {
+        id: gpuVendorFile
+        path: "file:///sys/class/drm/card0/device/vendor"
+        blockLoading: false
     }
     
-    // Process for getting GPU info
-    Process {
-        id: gpuProc
-        command: ["sh", "-c", "lspci 2>/dev/null | grep -i 'vga\\|3d\\|display' | head -n1 | cut -d':' -f3"]
-        running: false
-        
-        onExited: {
-            console.log("GPU process exited with code:", exitCode)
-            var gpuText = stdout.trim()
-            console.log("GPU output:", gpuText)
-            gpuValue = gpuText || "Unknown GPU"
-        }
-        
-        Component.onCompleted: {
-            console.log("Starting GPU process...")
-            running = true
-        }
+    FileView {
+        id: gpuDeviceFile
+        path: "file:///sys/class/drm/card0/device/device"
+        blockLoading: false
     }
     
-    // Process for WM detection
+    // Network - check for active interfaces
+    FileView {
+        id: netDevFile
+        path: "file:///proc/net/dev"
+        blockLoading: false
+    }
+    
+    // Fallback Process for WM (needs environment variable)
     Process {
         id: wmProc
-        command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP"]
+        command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP || wmctrl -m 2>/dev/null | grep Name | cut -d' ' -f2"]
         running: false
         
         onExited: {
             console.log("WM process exited with code:", exitCode)
             var desktop = stdout.trim().toLowerCase()
-            console.log("XDG_CURRENT_DESKTOP output:", desktop)
+            console.log("WM output:", desktop)
             
-            // Check common WM names
             if (desktop.includes('niri')) wmValue = "niri"
             else if (desktop.includes('hyprland')) wmValue = "Hyprland"
             else if (desktop.includes('sway')) wmValue = "Sway"
             else if (desktop.includes('mango')) wmValue = "mangowc"
+            else if (desktop.includes('kde')) wmValue = "KDE"
+            else if (desktop.includes('gnome')) wmValue = "GNOME"
             else if (desktop) wmValue = desktop
             else wmValue = "Unknown WM"
         }
         
         Component.onCompleted: {
-            console.log("Starting WM process...")
             running = true
         }
     }
     
-    // Process for package counts - combined into one script
+    // Process for package counts
     Process {
         id: packageProc
         command: ["sh", "-c", `
@@ -137,7 +114,6 @@ Item {
         
         onExited: {
             console.log("Package process exited with code:", exitCode)
-            console.log("Package output:", stdout)
             var counts = stdout.trim().split('|')
             var pkgs = []
             
@@ -153,12 +129,10 @@ Item {
             var gentoo = parseInt(counts[3] || "0")
             if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
             
-            console.log("Parsed packages:", pkgs.join(", "))
             packagesValue = pkgs.length > 0 ? pkgs.join(", ") : "0"
         }
         
         Component.onCompleted: {
-            console.log("Starting package process...")
             running = true
         }
     }
@@ -220,6 +194,50 @@ Item {
         return "? GB / ? GB"
     }
     
+    readonly property string gpu: {
+        var vendor = gpuVendorFile.text().trim()
+        var device = gpuDeviceFile.text().trim()
+        
+        // Map vendor IDs to names
+        var vendorName = ""
+        if (vendor === "0x8086") vendorName = "Intel"
+        else if (vendor === "0x10de") vendorName = "NVIDIA"
+        else if (vendor === "0x1002") vendorName = "AMD"
+        
+        // If we have vendor info, show it
+        if (vendorName) {
+            return vendorName + " GPU (Device: " + device + ")"
+        }
+        
+        // Fallback: try to read modalias which often has useful info
+        return "GPU " + device
+    }
+    
+    readonly property string networkType: {
+        var text = netDevFile.text()
+        if (text.length === 0) return "Unknown"
+        
+        var lines = text.split('\n')
+        // Skip header lines
+        for (var i = 2; i < lines.length; i++) {
+            var line = lines[i].trim()
+            if (line.length === 0) continue
+            
+            var iface = line.split(':')[0].trim()
+            // Skip loopback
+            if (iface === 'lo') continue
+            
+            // Check if interface has activity (received bytes > 0)
+            var parts = line.split(/\s+/)
+            if (parts.length > 1 && parseInt(parts[1]) > 0) {
+                if (iface.startsWith('wl')) return "WiFi (" + iface + ")"
+                if (iface.startsWith('en') || iface.startsWith('eth')) return "Ethernet (" + iface + ")"
+                return iface
+            }
+        }
+        return "No active connection"
+    }
+    
     Rectangle {
         id: panelContainer
         anchors.fill: parent
@@ -234,7 +252,7 @@ Item {
             anchors.margins: Style.marginXL
             spacing: Style.marginXL
             
-            // Distro logo - moved to top left
+            // Distro logo
             Image {
                 id: distroLogo
                 Layout.preferredWidth: 180
@@ -243,14 +261,6 @@ Item {
                 source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/panelfetch/icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
-                
-                onStatusChanged: {
-                    if (status === Image.Error) {
-                        console.log("Failed to load image from:", source)
-                    } else if (status === Image.Ready) {
-                        console.log("Image loaded successfully from GitHub")
-                    }
-                }
             }
             
             // System info
@@ -296,12 +306,12 @@ Item {
                 
                 InfoRow {
                     label: "GPU"
-                    value: gpuValue
+                    value: gpu
                 }
                 
                 InfoRow {
                     label: "Network"
-                    value: networkTypeValue
+                    value: networkType
                 }
                 
                 InfoRow {
