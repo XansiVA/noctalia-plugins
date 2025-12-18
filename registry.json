@@ -48,7 +48,7 @@
         {
       "id": "panelfetch",
       "name": "Panel Fetch",
-      "version": "1.1.0",
+      "version": "1.2.1",
       "author": "XansiVA",
       "description": "a neofetch but in a QML Panel!",
       "repository": "https://github.com/XansiVA/noctalia-plugins",
