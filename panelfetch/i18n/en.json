@@ -1,29 +1,61 @@
 {
-  "tooltip": {
-    "checking": "Checking for updates...",
-    "updatesAvailable": "{count} updates available",
-    "upToDate": "System up to date"
-  },
   "panel": {
-    "title": "System Updates",
-    "lastUpdate": "Last Update:",
-    "updatesAvailable": "Updates Available",
-    "checking": "Checking...",
-    "refresh": "Refresh",
-    "refreshDb": "Refresh DB",
-    "upgrade": "Upgrade"
+    "title": "Xansi's System Info :3",
+    "loading": "Loading...",
+    "unknown": "Unknown"
   },
-  "settings": {
-    "title": "Update Indicator Settings",
-    "checkInterval": {
-      "label": "Check Interval",
-      "description": "How often to check for updates (in minutes)"
-    },
-    "currentInterval": "Check every {value} minutes",
-    "terminal": {
-      "label": "Preferred Terminal",
-      "description": "Which terminal to use for running updates"
-    },
-    "currentTerminal": "Selected: {terminal}"
+
+  "tooltip": {
+    "open-keyboard": "Open System Info"
+  },
+
+  "labels": {
+    "hostname": "Hostname",
+    "distro": "Distro",
+    "cpu": "CPU",
+    "memory": "Memory",
+    "gpu": "GPU",
+    "network": "Network",
+    "wm": "WM",
+    "packages": "Packages",
+    "cpuTemp": "CPU Temp"
+  },
+
+  "values": {
+    "linuxFallback": "Linux",
+    "unknownCpu": "Unknown CPU",
+    "unknownGpu": "Unknown GPU",
+    "noPackages": "0",
+    "cpuTempUnavailable": "N/A (needs sensors)"
+  },
+
+  "network": {
+    "wifi": "WiFi ({iface})",
+    "ethernet": "Ethernet ({iface})",
+    "noActive": "No active connection",
+    "unknown": "Unknown"
+  },
+
+  "gpuVendors": {
+    "intel": "Intel",
+    "nvidia": "NVIDIA",
+    "amd": "AMD"
+  },
+
+  "packages": {
+    "pacman": "pacman",
+    "nix": "nix",
+    "xbps": "xbps",
+    "gentoo": "gentoo"
+  },
+
+  "wm": {
+    "unknown": "Unknown WM",
+    "niri": "niri",
+    "hyprland": "Hyprland",
+    "sway": "Sway",
+    "mangowc": "mangowc",
+    "kde": "KDE",
+    "gnome": "GNOME"
   }
 }
