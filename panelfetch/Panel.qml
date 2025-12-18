@@ -25,60 +25,64 @@ Item {
     property real contentPreferredWidth: 800 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
+    // State properties for dynamic data
+    property string networkTypeValue: "Loading..."
+    property string gpuValue: "Loading..."
+    property string wmValue: "Loading..."
+    property string packagesValue: "Loading..."
+    
     // FileView to read system files directly
     FileView {
         id: hostnameFile
         path: "file:///etc/hostname"
-        blockLoading: true
-        
-        Component.onCompleted: {
-            console.log("hostnameFile loaded, text length:", text().length)
-            console.log("hostnameFile content:", text())
-        }
+        blockLoading: false
     }
     
     FileView {
         id: osReleaseFile
         path: "file:///etc/os-release"
-        blockLoading: true
-        
-        Component.onCompleted: {
-            console.log("osReleaseFile loaded, text length:", text().length)
-        }
+        blockLoading: false
     }
     
     FileView {
         id: cpuinfoFile
         path: "file:///proc/cpuinfo"
-        blockLoading: true
-        
-        Component.onCompleted: {
-            console.log("cpuinfoFile loaded, text length:", text().length)
-        }
+        blockLoading: false
     }
     
     FileView {
         id: meminfoFile
         path: "file:///proc/meminfo"
-        blockLoading: true
-        
-        Component.onCompleted: {
-            console.log("meminfoFile loaded, text length:", text().length)
-        }
+        blockLoading: false
     }
     
     // Process for getting network type
     Process {
         id: networkProc
-        command: ["sh", "-c", "ip route get 1.1.1.1 | grep -oP 'dev \\K\\S+' | head -n1"]
+        command: ["sh", "-c", "ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \\K\\S+' | head -n1"]
         running: true
+        
+        onExited: {
+            var iface = stdout.trim()
+            console.log("Network interface:", iface)
+            if (iface.startsWith('wl')) networkTypeValue = "WiFi (" + iface + ")"
+            else if (iface.startsWith('en') || iface.startsWith('eth')) networkTypeValue = "Ethernet (" + iface + ")"
+            else if (iface) networkTypeValue = iface
+            else networkTypeValue = "Unknown"
+        }
     }
     
     // Process for getting GPU info
     Process {
         id: gpuProc
-        command: ["sh", "-c", "lspci | grep -i 'vga\\|3d\\|display' | head -n1 | cut -d':' -f3"]
+        command: ["sh", "-c", "lspci 2>/dev/null | grep -i 'vga\\|3d\\|display' | head -n1 | cut -d':' -f3"]
         running: true
+        
+        onExited: {
+            var gpuText = stdout.trim()
+            console.log("GPU:", gpuText)
+            gpuValue = gpuText || "Unknown GPU"
+        }
     }
     
     // Process for WM detection
@@ -86,51 +90,68 @@ Item {
         id: wmProc
         command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP"]
         running: true
+        
+        onExited: {
+            var desktop = stdout.trim().toLowerCase()
+            console.log("XDG_CURRENT_DESKTOP:", desktop)
+            
+            // Check common WM names
+            if (desktop.includes('niri')) wmValue = "niri"
+            else if (desktop.includes('hyprland')) wmValue = "Hyprland"
+            else if (desktop.includes('sway')) wmValue = "Sway"
+            else if (desktop.includes('mango')) wmValue = "mangowc"
+            else if (desktop) wmValue = desktop
+            else wmValue = "Unknown WM"
+        }
     }
     
-    // Process for package counts
+    // Process for package counts - combined into one script
     Process {
-        id: pacmanProc
-        command: ["sh", "-c", "pacman -Qq 2>/dev/null | wc -l"]
+        id: packageProc
+        command: ["sh", "-c", `
+            PACMAN=$(pacman -Qq 2>/dev/null | wc -l)
+            NIX=$(nix-env --query 2>/dev/null | wc -l)
+            XBPS=$(xbps-query -l 2>/dev/null | wc -l)
+            GENTOO=$(qlist -I 2>/dev/null | wc -l)
+            echo "$PACMAN|$NIX|$XBPS|$GENTOO"
+        `]
         running: true
-    }
-    
-    Process {
-        id: nixProc
-        command: ["sh", "-c", "nix-env --query 2>/dev/null | wc -l"]
-        running: true
-    }
-    
-    Process {
-        id: xbpsProc
-        command: ["sh", "-c", "xbps-query -l 2>/dev/null | wc -l"]
-        running: true
-    }
-    
-    Process {
-        id: gentooProc
-        command: ["sh", "-c", "qlist -I 2>/dev/null | wc -l"]
-        running: true
+        
+        onExited: {
+            var counts = stdout.trim().split('|')
+            var pkgs = []
+            
+            var pacman = parseInt(counts[0] || "0")
+            if (pacman > 0) pkgs.push(pacman + " (pacman)")
+            
+            var nix = parseInt(counts[1] || "0")
+            if (nix > 0) pkgs.push(nix + " (nix)")
+            
+            var xbps = parseInt(counts[2] || "0")
+            if (xbps > 0) pkgs.push(xbps + " (xbps)")
+            
+            var gentoo = parseInt(counts[3] || "0")
+            if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
+            
+            console.log("Packages:", pkgs.join(", "))
+            packagesValue = pkgs.length > 0 ? pkgs.join(", ") : "0"
+        }
     }
     
     // Parse system info from files
     readonly property string hostname: {
         var text = hostnameFile.text().trim()
-        console.log("Hostname:", text)
         return text || "Unknown"
     }
     
     readonly property string distro: {
         var text = osReleaseFile.text()
-        console.log("os-release length:", text.length)
         if (text.length === 0) return "Linux"
         
         var lines = text.split('\n')
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].startsWith('PRETTY_NAME=')) {
-                var result = lines[i].substring(13).replace(/"/g, '')
-                console.log("Distro:", result)
-                return result
+                return lines[i].substring(13).replace(/"/g, '')
             }
         }
         return "Linux"
@@ -138,15 +159,12 @@ Item {
     
     readonly property string cpu: {
         var text = cpuinfoFile.text()
-        console.log("cpuinfo length:", text.length)
         if (text.length === 0) return "Unknown CPU"
         
         var lines = text.split('\n')
         for (var i = 0; i < lines.length; i++) {
             if (lines[i].indexOf('model name') !== -1) {
-                var result = lines[i].split(':')[1].trim()
-                console.log("CPU:", result)
-                return result
+                return lines[i].split(':')[1].trim()
             }
         }
         return "Unknown CPU"
@@ -154,7 +172,6 @@ Item {
     
     readonly property string ramInfo: {
         var text = meminfoFile.text()
-        console.log("meminfo length:", text.length)
         if (text.length === 0) return "? GB / ? GB"
         
         var lines = text.split('\n')
@@ -173,58 +190,9 @@ Item {
             var used = total - available
             var usedGB = (used / 1024 / 1024).toFixed(1)
             var totalGB = (total / 1024 / 1024).toFixed(1)
-            var result = usedGB + " GB / " + totalGB + " GB"
-            console.log("RAM:", result)
-            return result
+            return usedGB + " GB / " + totalGB + " GB"
         }
         return "? GB / ? GB"
-    }
-    
-    readonly property string networkType: {
-        var iface = networkProc.stdout.trim()
-        console.log("Network interface:", iface)
-        if (iface.startsWith('wl')) return "WiFi (" + iface + ")"
-        if (iface.startsWith('en') || iface.startsWith('eth')) return "Ethernet (" + iface + ")"
-        return iface || "Unknown"
-    }
-    
-    readonly property string gpu: {
-        var gpuText = gpuProc.stdout.trim()
-        console.log("GPU:", gpuText)
-        return gpuText || "Unknown GPU"
-    }
-    
-    readonly property string wm: {
-        var desktop = wmProc.stdout.trim().toLowerCase()
-        console.log("XDG_CURRENT_DESKTOP:", desktop)
-        
-        // Check common WM names
-        if (desktop.includes('niri')) return "niri"
-        if (desktop.includes('hyprland')) return "Hyprland"
-        if (desktop.includes('sway')) return "Sway"
-        if (desktop.includes('mango')) return "mangowc"
-        
-        // Fallback - just return what we got
-        return desktop || "Unknown WM"
-    }
-    
-    readonly property string packages: {
-        var pkgs = []
-        
-        var pacman = parseInt(pacmanProc.stdout.trim())
-        if (pacman > 0) pkgs.push(pacman + " (pacman)")
-        
-        var nix = parseInt(nixProc.stdout.trim())
-        if (nix > 0) pkgs.push(nix + " (nix)")
-        
-        var xbps = parseInt(xbpsProc.stdout.trim())
-        if (xbps > 0) pkgs.push(xbps + " (xbps)")
-        
-        var gentoo = parseInt(gentooProc.stdout.trim())
-        if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
-        
-        console.log("Packages:", pkgs.join(", "))
-        return pkgs.length > 0 ? pkgs.join(", ") : "0"
     }
     
     Rectangle {
@@ -283,7 +251,7 @@ Item {
                 
                 InfoRow {
                     label: "Hostname"
-                    value: hostname || "Unknown"
+                    value: hostname
                 }
                 
                 InfoRow {
@@ -303,22 +271,22 @@ Item {
                 
                 InfoRow {
                     label: "GPU"
-                    value: gpu
+                    value: gpuValue
                 }
                 
                 InfoRow {
                     label: "Network"
-                    value: networkType
+                    value: networkTypeValue
                 }
                 
                 InfoRow {
                     label: "WM"
-                    value: wm
+                    value: wmValue
                 }
                 
                 InfoRow {
                     label: "Packages"
-                    value: packages
+                    value: packagesValue
                 }
                 
                 InfoRow {
