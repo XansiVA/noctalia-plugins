@@ -60,15 +60,21 @@ Item {
     Process {
         id: networkProc
         command: ["sh", "-c", "ip route get 1.1.1.1 2>/dev/null | grep -oP 'dev \\K\\S+' | head -n1"]
-        running: true
+        running: false
         
         onExited: {
+            console.log("Network process exited with code:", exitCode)
             var iface = stdout.trim()
-            console.log("Network interface:", iface)
+            console.log("Network interface output:", iface)
             if (iface.startsWith('wl')) networkTypeValue = "WiFi (" + iface + ")"
             else if (iface.startsWith('en') || iface.startsWith('eth')) networkTypeValue = "Ethernet (" + iface + ")"
             else if (iface) networkTypeValue = iface
             else networkTypeValue = "Unknown"
+        }
+        
+        Component.onCompleted: {
+            console.log("Starting network process...")
+            running = true
         }
     }
     
@@ -76,12 +82,18 @@ Item {
     Process {
         id: gpuProc
         command: ["sh", "-c", "lspci 2>/dev/null | grep -i 'vga\\|3d\\|display' | head -n1 | cut -d':' -f3"]
-        running: true
+        running: false
         
         onExited: {
+            console.log("GPU process exited with code:", exitCode)
             var gpuText = stdout.trim()
-            console.log("GPU:", gpuText)
+            console.log("GPU output:", gpuText)
             gpuValue = gpuText || "Unknown GPU"
+        }
+        
+        Component.onCompleted: {
+            console.log("Starting GPU process...")
+            running = true
         }
     }
     
@@ -89,11 +101,12 @@ Item {
     Process {
         id: wmProc
         command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP"]
-        running: true
+        running: false
         
         onExited: {
+            console.log("WM process exited with code:", exitCode)
             var desktop = stdout.trim().toLowerCase()
-            console.log("XDG_CURRENT_DESKTOP:", desktop)
+            console.log("XDG_CURRENT_DESKTOP output:", desktop)
             
             // Check common WM names
             if (desktop.includes('niri')) wmValue = "niri"
@@ -102,6 +115,11 @@ Item {
             else if (desktop.includes('mango')) wmValue = "mangowc"
             else if (desktop) wmValue = desktop
             else wmValue = "Unknown WM"
+        }
+        
+        Component.onCompleted: {
+            console.log("Starting WM process...")
+            running = true
         }
     }
     
@@ -115,9 +133,11 @@ Item {
             GENTOO=$(qlist -I 2>/dev/null | wc -l)
             echo "$PACMAN|$NIX|$XBPS|$GENTOO"
         `]
-        running: true
+        running: false
         
         onExited: {
+            console.log("Package process exited with code:", exitCode)
+            console.log("Package output:", stdout)
             var counts = stdout.trim().split('|')
             var pkgs = []
             
@@ -133,8 +153,13 @@ Item {
             var gentoo = parseInt(counts[3] || "0")
             if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
             
-            console.log("Packages:", pkgs.join(", "))
+            console.log("Parsed packages:", pkgs.join(", "))
             packagesValue = pkgs.length > 0 ? pkgs.join(", ") : "0"
+        }
+        
+        Component.onCompleted: {
+            console.log("Starting package process...")
+            running = true
         }
     }
     
