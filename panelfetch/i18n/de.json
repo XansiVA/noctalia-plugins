@@ -1,0 +1,61 @@
+{
+  "panel": {
+    "title": "Xansis Systeminformationen :3",
+    "loading": "Lädt...",
+    "unknown": "Unbekannt"
+  },
+
+  "tooltip": {
+    "open-keyboard": "Systeminformationen öffnen"
+  },
+
+  "labels": {
+    "hostname": "Hostname",
+    "distro": "Distribution",
+    "cpu": "CPU",
+    "memory": "Arbeitsspeicher",
+    "gpu": "GPU",
+    "network": "Netzwerk",
+    "wm": "Fenstermanager",
+    "packages": "Pakete",
+    "cpuTemp": "CPU-Temperatur"
+  },
+
+  "values": {
+    "linuxFallback": "Linux",
+    "unknownCpu": "Unbekannte CPU",
+    "unknownGpu": "Unbekannte GPU",
+    "noPackages": "0",
+    "cpuTempUnavailable": "N/V (Sensoren erforderlich)"
+  },
+
+  "network": {
+    "wifi": "WLAN ({iface})",
+    "ethernet": "Ethernet ({iface})",
+    "noActive": "Keine aktive Verbindung",
+    "unknown": "Unbekannt"
+  },
+
+  "gpuVendors": {
+    "intel": "Intel",
+    "nvidia": "NVIDIA",
+    "amd": "AMD"
+  },
+
+  "packages": {
+    "pacman": "pacman",
+    "nix": "nix",
+    "xbps": "xbps",
+    "gentoo": "gentoo"
+  },
+
+  "wm": {
+    "unknown": "Unbekannter WM",
+    "niri": "niri",
+    "hyprland": "Hyprland",
+    "sway": "Sway",
+    "mangowc": "mangowc",
+    "kde": "KDE",
+    "gnome": "GNOME"
+  }
+}
