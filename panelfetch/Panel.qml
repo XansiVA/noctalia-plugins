@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import Qt5Compat.GraphicalEffects
 import QtQuick.Layouts
 import Quickshell.Io
 import qs.Commons
@@ -25,9 +26,10 @@ Item {
     property real contentPreferredWidth: 800 * Style.uiScaleRatio
     property real contentPreferredHeight: 400 * Style.uiScaleRatio
     
-    // State properties for dynamic data that needs Process
-    property string wmValue: "Loading..."
-    property string packagesValue: "Loading..."
+    // State properties for dynamic data
+    property string gpuValue: ""
+    property string wmValue: ""
+    property string packagesValue: ""
     
     // FileView to read system files directly
     FileView {
@@ -54,17 +56,94 @@ Item {
         blockLoading: false
     }
     
-    // GPU info from sysfs
-    FileView {
-        id: gpuVendorFile
-        path: "file:///sys/class/drm/card0/device/vendor"
-        blockLoading: false
+    // Get username from environment
+    Process {
+        id: usernameProc
+        command: ["sh", "-c", "whoami"]
+        running: true
+        
+        stdout: StdioCollector {
+            id: usernameCollector
+            property string username: ""
+            onStreamFinished: {
+                username = text.trim()
+            }
+        }
     }
     
-    FileView {
-        id: gpuDeviceFile
-        path: "file:///sys/class/drm/card0/device/device"
-        blockLoading: false
+    // GPU Process - using StdioCollector
+    Process {
+        id: gpuProc
+        command: ["sh", "-c", "lspci 2>/dev/null | grep -iE 'vga|3d|display' | head -n1 | sed 's/.*: //'"]
+        running: true
+        
+        stdout: StdioCollector {
+            id: gpuCollector
+            onStreamFinished: {
+                var gpuText = text.trim()
+                console.log("GPU output:", gpuText)
+                if (gpuText) {
+                    gpuValue = gpuText
+                } else {
+                    gpuValue = "Unknown GPU"
+                }
+            }
+        }
+    }
+    
+    // WM Process - using StdioCollector
+    Process {
+        id: wmProc
+        command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP"]
+        running: true
+        
+        stdout: StdioCollector {
+            id: wmCollector
+            onStreamFinished: {
+                var desktop = text.trim().toLowerCase()
+                console.log("WM output:", desktop)
+                
+                if (desktop.includes('niri')) wmValue = "niri"
+                else if (desktop.includes('hyprland')) wmValue = "Hyprland"
+                else if (desktop.includes('sway')) wmValue = "Sway"
+                else if (desktop.includes('mango')) wmValue = "mangowc"
+                else if (desktop.includes('kde')) wmValue = "KDE"
+                else if (desktop.includes('gnome')) wmValue = "GNOME"
+                else if (desktop) wmValue = desktop
+                else wmValue = "Unknown WM"
+            }
+        }
+    }
+    
+    // Package Process - using StdioCollector
+    Process {
+        id: packageProc
+        command: ["sh", "-c", "PACMAN=$(pacman -Qq 2>/dev/null | wc -l); NIX=$(nix-env --query 2>/dev/null | wc -l); XBPS=$(xbps-query -l 2>/dev/null | wc -l); GENTOO=$(qlist -I 2>/dev/null | wc -l); echo \"$PACMAN|$NIX|$XBPS|$GENTOO\""]
+        running: true
+        
+        stdout: StdioCollector {
+            id: packageCollector
+            onStreamFinished: {
+                console.log("Package output:", text)
+                var counts = text.trim().split('|')
+                var pkgs = []
+                
+                var pacman = parseInt(counts[0] || "0")
+                if (pacman > 0) pkgs.push(pacman + " (pacman)")
+                
+                var nix = parseInt(counts[1] || "0")
+                if (nix > 0) pkgs.push(nix + " (nix)")
+                
+                var xbps = parseInt(counts[2] || "0")
+                if (xbps > 0) pkgs.push(xbps + " (xbps)")
+                
+                var gentoo = parseInt(counts[3] || "0")
+                if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
+                
+                packagesValue = pkgs.length > 0 ? pkgs.join(", ") : "0"
+                console.log("Packages set to:", packagesValue)
+            }
+        }
     }
     
     // Network - check for active interfaces
@@ -74,75 +153,14 @@ Item {
         blockLoading: false
     }
     
-    // Fallback Process for WM (needs environment variable)
-    Process {
-        id: wmProc
-        command: ["sh", "-c", "echo $XDG_CURRENT_DESKTOP || wmctrl -m 2>/dev/null | grep Name | cut -d' ' -f2"]
-        running: false
-        
-        onExited: {
-            console.log("WM process exited with code:", exitCode)
-            var desktop = stdout.trim().toLowerCase()
-            console.log("WM output:", desktop)
-            
-            if (desktop.includes('niri')) wmValue = "niri"
-            else if (desktop.includes('hyprland')) wmValue = "Hyprland"
-            else if (desktop.includes('sway')) wmValue = "Sway"
-            else if (desktop.includes('mango')) wmValue = "mangowc"
-            else if (desktop.includes('kde')) wmValue = "KDE"
-            else if (desktop.includes('gnome')) wmValue = "GNOME"
-            else if (desktop) wmValue = desktop
-            else wmValue = "Unknown WM"
-        }
-        
-        Component.onCompleted: {
-            running = true
-        }
-    }
-    
-    // Process for package counts
-    Process {
-        id: packageProc
-        command: ["sh", "-c", `
-            PACMAN=$(pacman -Qq 2>/dev/null | wc -l)
-            NIX=$(nix-env --query 2>/dev/null | wc -l)
-            XBPS=$(xbps-query -l 2>/dev/null | wc -l)
-            GENTOO=$(qlist -I 2>/dev/null | wc -l)
-            echo "$PACMAN|$NIX|$XBPS|$GENTOO"
-        `]
-        running: false
-        
-        onExited: {
-            console.log("Package process exited with code:", exitCode)
-            var counts = stdout.trim().split('|')
-            var pkgs = []
-            
-            var pacman = parseInt(counts[0] || "0")
-            if (pacman > 0) pkgs.push(pacman + " (pacman)")
-            
-            var nix = parseInt(counts[1] || "0")
-            if (nix > 0) pkgs.push(nix + " (nix)")
-            
-            var xbps = parseInt(counts[2] || "0")
-            if (xbps > 0) pkgs.push(xbps + " (xbps)")
-            
-            var gentoo = parseInt(counts[3] || "0")
-            if (gentoo > 0) pkgs.push(gentoo + " (gentoo)")
-            
-            packagesValue = pkgs.length > 0 ? pkgs.join(", ") : "0"
-        }
-        
-        Component.onCompleted: {
-            running = true
-        }
+    // Combined user@hostname display
+    readonly property string userHost: {
+        var user = usernameCollector.username || "user"
+        var host = hostnameFile.text().trim() || "unknown"
+        return user + "@" + host
     }
     
     // Parse system info from files
-    readonly property string hostname: {
-        var text = hostnameFile.text().trim()
-        return text || "Unknown"
-    }
-    
     readonly property string distro: {
         var text = osReleaseFile.text()
         if (text.length === 0) return "Linux"
@@ -194,25 +212,6 @@ Item {
         return "? GB / ? GB"
     }
     
-    readonly property string gpu: {
-        var vendor = gpuVendorFile.text().trim()
-        var device = gpuDeviceFile.text().trim()
-        
-        // Map vendor IDs to names
-        var vendorName = ""
-        if (vendor === "0x8086") vendorName = "Intel"
-        else if (vendor === "0x10de") vendorName = "NVIDIA"
-        else if (vendor === "0x1002") vendorName = "AMD"
-        
-        // If we have vendor info, show it
-        if (vendorName) {
-            return vendorName + " GPU (Device: " + device + ")"
-        }
-        
-        // Fallback: try to read modalias which often has useful info
-        return "GPU " + device
-    }
-    
     readonly property string networkType: {
         var text = netDevFile.text()
         if (text.length === 0) return "Unknown"
@@ -252,15 +251,22 @@ Item {
             anchors.margins: Style.marginXL
             spacing: Style.marginXL
             
-            // Distro logo
+            // Distro logo - aligned with divider
             Image {
                 id: distroLogo
                 Layout.preferredWidth: 180
                 Layout.preferredHeight: 180
-                Layout.alignment: Qt.AlignTop | Qt.AlignLeft
+                Layout.alignment: Qt.AlignLeft
+                Layout.topMargin: 48  // Push down to align with divider
                 source: "https://raw.githubusercontent.com/XansiVA/noctalia-plugins/main/panelfetch/icons/arch.svg"
                 fillMode: Image.PreserveAspectFit
                 smooth: true
+                
+                // Apply color overlay to make it match the theme
+                layer.enabled: true
+                layer.effect: ColorOverlay {
+                    color: Color.mPrimary
+                }
             }
             
             // System info
@@ -271,7 +277,7 @@ Item {
                 spacing: Style.marginM
                 
                 Text {
-                    text: "Xansi's System Info :3"
+                    text: userHost
                     color: Color.mPrimary
                     font.family: "Monospace"
                     font.pixelSize: 24
@@ -284,59 +290,70 @@ Item {
                     color: Color.mOutline
                 }
                 
-                InfoRow {
-                    label: "Hostname"
-                    value: hostname
-                }
-                
-                InfoRow {
-                    label: "Distro"
-                    value: distro
-                }
-                
-                InfoRow {
-                    label: "CPU"
-                    value: cpu
-                }
-                
-                InfoRow {
-                    label: "Memory"
-                    value: ramInfo
-                }
-                
-                InfoRow {
-                    label: "GPU"
-                    value: gpu
-                }
-                
-                InfoRow {
-                    label: "Network"
-                    value: networkType
-                }
-                
-                InfoRow {
-                    label: "WM"
-                    value: wmValue
-                }
-                
-                InfoRow {
-                    label: "Packages"
-                    value: packagesValue
-                }
-                
-                InfoRow {
-                    label: "CPU Temp"
-                    value: "N/A (needs sensors)"
-                }
-                
-                Item {
+                // Single background rectangle for all info
+                Rectangle {
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
+                    color: Qt.rgba(0, 0, 0, 0.3)
+                    radius: Style.radiusM
+                    border.color: Qt.rgba(Color.mOutline.r, Color.mOutline.g, Color.mOutline.b, 0.2)
+                    border.width: 1
+                    
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Style.marginL
+                        spacing: Style.marginS
+                        
+                        InfoRow {
+                            label: "Distro"
+                            value: distro
+                        }
+                        
+                        InfoRow {
+                            label: "CPU"
+                            value: cpu
+                        }
+                        
+                        InfoRow {
+                            label: "Memory"
+                            value: ramInfo
+                        }
+                        
+                        InfoRow {
+                            label: "GPU"
+                            value: gpuValue || "Unknown GPU"
+                        }
+                        
+                        InfoRow {
+                            label: "Network"
+                            value: networkType
+                        }
+                        
+                        InfoRow {
+                            label: "WM"
+                            value: wmValue || "Unknown WM"
+                        }
+                        
+                        InfoRow {
+                            label: "Packages"
+                            value: packagesValue || "0"
+                        }
+                        
+                        InfoRow {
+                            label: "CPU Temp"
+                            value: "N/A (needs sensors)"
+                        }
+                        
+                        Item {
+                            Layout.fillHeight: true
+                        }
+                    }
                 }
             }
         }
     }
     
-    // Info row component
+    // Info row component - now just text, no background
     component InfoRow: RowLayout {
         property string label: ""
         property string value: ""
